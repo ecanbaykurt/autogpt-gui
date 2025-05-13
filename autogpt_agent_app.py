@@ -5,7 +5,7 @@ import openai
 st.title("🧠 AutoGPT-Style Research Agent (Streamlit)")
 st.write("This app simulates an AutoGPT-style agent that searches academic papers and writes Python code using OpenAI GPT-4o or GPT-3.5.")
 
-# API Key input (secure - not hardcoded)
+# API Key input (safe, no hardcoding)
 api_key = st.text_input("Enter your OpenAI API Key (starts with sk-...):", type="password")
 
 # User task input
@@ -20,13 +20,11 @@ if st.button("Run Agent"):
         openai.api_key = api_key
         st.info("Agent is working on your task. Please wait...")
 
-        # Compose conversation
         conversation = [
             {"role": "system", "content": "You are an autonomous research agent working step by step."},
             {"role": "user", "content": task}
         ]
 
-        # Call GPT-4o or fallback to GPT-3.5-turbo if error
         try:
             response = openai.chat.completions.create(
                 model="gpt-4o",
@@ -34,14 +32,9 @@ if st.button("Run Agent"):
                 max_tokens=3500,
                 temperature=0.2
             )
-        except openai.error.InvalidRequestError as e:
-            st.error(f"Error: {e}")
-        except openai.error.AuthenticationError:
-            st.error("Authentication failed. Check your API key.")
-        except openai.error.RateLimitError:
-            st.error("Rate limit exceeded or quota exhausted.")
-        except Exception as e:
-            st.error(f"General Error: {e}")
-        else:
             st.success("Agent completed the task!")
             st.write(response.choices[0].message.content)
+        except openai.OpenAIError as e:
+            st.error(f"OpenAI API Error: {e}")
+        except Exception as e:
+            st.error(f"General Error: {e}")
