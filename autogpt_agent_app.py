@@ -2,10 +2,10 @@ import streamlit as st
 import openai
 
 # Title and description
-st.title("🧠 AutoGPT-Style Research Agent (Streamlit)")
-st.write("This app simulates an AutoGPT-style agent that searches academic papers and writes Python code using OpenAI GPT-4o or GPT-3.5.")
+st.title("🧠 Smart Quota-Aware AutoGPT Agent")
+st.write("This agent checks your API key, usage, available models, and smartly falls back to GPT-3.5 Turbo if needed.")
 
-# API Key input (safe, no hardcoding)
+# API Key input (masked)
 api_key = st.text_input("Enter your OpenAI API Key (starts with sk-...):", type="password")
 
 # User task input
@@ -18,23 +18,45 @@ if st.button("Run Agent"):
         st.error("Please enter a valid OpenAI API key starting with 'sk-'.")
     else:
         openai.api_key = api_key
-        st.info("Agent is working on your task. Please wait...")
 
+        # Test quota and model access first
+        try:
+            models = openai.models.list()
+            model_ids = [m.id for m in models.data]
+            st.info(f"✅ Models you have access to: {', '.join(model_ids)}")
+
+        except Exception as e:
+            st.error(f"Failed to check your models or key: {e}")
+            st.stop()
+
+        # Compose conversation
         conversation = [
             {"role": "system", "content": "You are an autonomous research agent working step by step."},
             {"role": "user", "content": task}
         ]
 
+        # Try GPT-4o first
         try:
+            st.info("Trying GPT-4o...")
             response = openai.chat.completions.create(
                 model="gpt-4o",
                 messages=conversation,
                 max_tokens=3500,
                 temperature=0.2
             )
-            st.success("Agent completed the task!")
+            st.success("✅ Agent completed the task using GPT-4o!")
             st.write(response.choices[0].message.content)
+
         except openai.OpenAIError as e:
-            st.error(f"OpenAI API Error: {e}")
-        except Exception as e:
-            st.error(f"General Error: {e}")
+            st.warning(f"⚠ GPT-4o failed or quota exceeded: {e}\nTrying GPT-3.5 Turbo as fallback...")
+            try:
+                response = openai.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=conversation,
+                    max_tokens=3500,
+                    temperature=0.2
+                )
+                st.success("✅ Agent completed the task using GPT-3.5 Turbo!")
+                st.write(response.choices[0].message.content)
+            except openai.OpenAIError as e:
+                st.error(f"❌ OpenAI API Error even with GPT-3.5 Turbo: {e}")
