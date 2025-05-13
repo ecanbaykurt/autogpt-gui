@@ -2,7 +2,7 @@ import streamlit as st
 import openai
 
 # Setup OpenAI API Key (safe with Streamlit secrets if deployed)
-openai.api_key = st.secrets.get("OPENAI_API_KEY", "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")  # Replace with your key or use secrets
+openai.api_key = st.secrets.get("OPENAI_API_KEY", "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")  # Replace with your key or use secrets
 
 # Title and description
 st.title("🧠 AutoGPT-Style Research Agent")
