@@ -1,12 +1,12 @@
 import streamlit as st
 import openai
 
-# Setup OpenAI API Key (safe with Streamlit secrets if deployed)
-openai.api_key = st.secrets.get("OPENAI_API_KEY", "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")  # Replace with your key or use secrets
-
 # Title and description
-st.title("🧠 AutoGPT-Style Research Agent")
-st.write("This app simulates an AutoGPT-style agent that searches academic papers and writes Python code.")
+st.title("🧠 AutoGPT-Style Research Agent (Streamlit)")
+st.write("This app simulates an AutoGPT-style agent that searches academic papers and writes Python code using OpenAI GPT-4o or GPT-3.5.")
+
+# API Key input (secure - not hardcoded)
+api_key = st.text_input("Enter your OpenAI API Key (starts with sk-...):", type="password")
 
 # User task input
 task = st.text_area("Enter your task:", 
@@ -14,24 +14,34 @@ task = st.text_area("Enter your task:",
 
 # Execution button
 if st.button("Run Agent"):
-    st.info("Agent is working on your task. Please wait...")
-
-    # Compose conversation
-    conversation = [
-        {"role": "system", "content": "You are an autonomous research agent working step by step."},
-        {"role": "user", "content": task}
-    ]
-
-    # Call GPT-4o or GPT-3.5-turbo fallback
-    try:
-        response = openai.chat.completions.create(
-            model="gpt-4o",
-            messages=conversation,
-            max_tokens=3500,
-            temperature=0.2
-        )
-    except Exception as e:
-        st.error(f"Error: {e}")
+    if not api_key.startswith("sk-"):
+        st.error("Please enter a valid OpenAI API key starting with 'sk-'.")
     else:
-        st.success("Agent completed the task!")
-        st.write(response.choices[0].message.content)
+        openai.api_key = api_key
+        st.info("Agent is working on your task. Please wait...")
+
+        # Compose conversation
+        conversation = [
+            {"role": "system", "content": "You are an autonomous research agent working step by step."},
+            {"role": "user", "content": task}
+        ]
+
+        # Call GPT-4o or fallback to GPT-3.5-turbo if error
+        try:
+            response = openai.chat.completions.create(
+                model="gpt-4o",
+                messages=conversation,
+                max_tokens=3500,
+                temperature=0.2
+            )
+        except openai.error.InvalidRequestError as e:
+            st.error(f"Error: {e}")
+        except openai.error.AuthenticationError:
+            st.error("Authentication failed. Check your API key.")
+        except openai.error.RateLimitError:
+            st.error("Rate limit exceeded or quota exhausted.")
+        except Exception as e:
+            st.error(f"General Error: {e}")
+        else:
+            st.success("Agent completed the task!")
+            st.write(response.choices[0].message.content)
